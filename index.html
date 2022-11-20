@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>IchigoTerm</title>
+</head><body>
+<h1>IchigoTerm</h1>
+
+<main id=main>
+  <textarea id=talog></textarea>
+  <form id=form><input id=inp><button id=btnsend>SEND</button></form>
+
+  <div class=buttons>
+    <button id=btnreq>connect</button> → 
+    <button id=btnled1>LED1</button>
+    <button id=btnled0>LED0</button>
+  </div>
+</main>
+
+<hr>
+<a href=https://github.com/ichigojam/IchigoTerm/>src on GitHub</a>
+
+<script type="module">
+import { BufferedReader } from "https://js.sabae.cc/BufferedReader.js";
+import { TextWriter } from "https://js.sabae.cc/TextWriter.js";
+
+export const scrollBottom = (comp) => {
+  comp.scroll(0, comp.scrollHeight - comp.clientHeight);
+};
+
+const log = (s) => {
+  talog.value += s;
+  scrollBottom(talog);
+};
+
+const main = async (port) => {
+  const baudRate = 115200;
+  await port.open({ baudRate });
+  const writer = new TextWriter(port.writable.getWriter());
+  const reader = new BufferedReader(port.readable.getReader({ mode: "byob" }));
+
+  const send = (s) => {
+    writer.writeString(s);
+    log(s);
+  };
+  btnsend.onclick = form.onsubmit = (e) => {
+    const s = inp.value + "\n";
+    send(s);
+    inp.value = "";
+    e.preventDefault();
+  };
+  btnled1.onclick = () => {
+    send("LED1\n");
+  };
+  btnled0.onclick = () => {
+    send("LED0\n");
+  };
+  const loop = async () => {
+    for (;;) {
+      const b = await reader.readByte();
+      const c = String.fromCharCode(b);
+      log(c);
+    }
+  };
+  loop();
+}
+btnreq.onclick = async () => {
+  const port = await navigator.serial.requestPort();
+  main(port);
+};
+
+const ports = await navigator.serial.getPorts();
+if (ports.length > 0) {
+  main(ports[0]);
+}
+
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+body {
+  text-align: center;
+}
+main {
+  padding: 2em;
+}
+#talog {
+  height: 400px;
+  display: block;
+  width: 100%;
+  border: 1px solid gray;
+}
+#inp {
+  width: 90%;
+}
+#btnsend {
+  width: 10%;
+}
+.buttons {
+  margin: 1em;
+}
+</style>
+</body><html>
