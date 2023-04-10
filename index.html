@@ -11,6 +11,8 @@
     <button id=btnreq>connect</button> → 
     <button id=btnled1>LED1</button>
     <button id=btnled0>LED0</button>
+    <button id=btnesc>ESC</button>
+    <label><input type=checkbox id=mixjuice>MixJuice</label>
   </div>
 </main>
 
@@ -20,6 +22,77 @@
 <script type="module">
 import { BufferedReader } from "https://js.sabae.cc/BufferedReader.js";
 import { TextWriter } from "https://js.sabae.cc/TextWriter.js";
+import { sleep } from "https://js.sabae.cc/sleep.js";
+
+const fetchAndPut = async (url, post) => {
+  try {
+    const opt = !post ? undefined : {
+      method: "POST",
+      body: encodeBin(post),
+      headers: {
+        //"Content-type": "application/octet-stream",
+        "Content-type": "text/plain",
+      },
+    };
+    const bin = await (await fetch(url, opt)).arrayBuffer();
+    const s = new Uint8Array(bin);
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      putc(c);
+      await sleep(30);
+      if (!iopanel.chkmixjuice.checked) {
+        break;
+      }
+    }
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+export class MixJuice {
+  constructor() {
+    this.buf = "";
+    this.posts = null;
+    this.postsurl = null;
+  }
+  write(c) {
+    for (;;) {
+      this.buf += c;
+      const n = this.buf.indexOf("\n");
+      if (n < 0) {
+        return;
+      }
+      const s = this.buf.substring(n);
+      this.buf = this.buf.substring(n + 1);
+
+      if (s.startsWith("MJ ")) {
+        if (s.startsWith("MJ GET ")) {
+          const url = "http://" + s.substring(7);
+          fetchAndPut(url);
+        } else if (s.startsWith("MJ GETS ")) {
+          const url = "https://" + s.substring(8);
+          fetchAndPut(url);
+        } else if (s.startsWith("MJ POSTS START ")) {
+          this.postsurl = "https://" + s.substring(15);
+          console.log(postsurl)
+          this.posts = [];
+          return;
+        } else if (s == "MJ POSTS END") {
+          fetchAndPut(this.postsurl, this.posts.join("\n"));
+        }
+        /*
+        MJ PCT contenttype
+        */
+      }
+      if (this.posts != null) {
+        this.posts.push(s);
+      }
+		}
+  }
+  async read() {
+
+  }
+}
 
 export const scrollBottom = (comp) => {
   comp.scroll(0, comp.scrollHeight - comp.clientHeight);
@@ -51,6 +124,9 @@ const main = async (port) => {
   };
   btnled0.onclick = () => {
     send("LED0\n");
+  };
+  btnesc.onclick = () => {
+    send("\x1b");
   };
   const loop = async () => {
     for (;;) {
