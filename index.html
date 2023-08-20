@@ -2,8 +2,8 @@
 <title>IchigoTerm</title>
 </head><body>
 <h1>IchigoTerm</h1>
-
 <main id=main>
+  <div id=divij></div>
   <textarea id=talog></textarea>
   <form id=form><input id=inp><button id=btnsend>SEND</button></form>
 
@@ -12,6 +12,7 @@
     <button id=btnled1>LED1</button>
     <button id=btnled0>LED0</button>
     <button id=btnesc>ESC</button>
+    <button id=btnfull>FULL</button>
     <label><input type=checkbox id=mixjuice>MixJuice</label>
   </div>
 </main>
@@ -23,6 +24,9 @@
 import { BufferedReader } from "https://js.sabae.cc/BufferedReader.js";
 import { TextWriter } from "https://js.sabae.cc/TextWriter.js";
 import { sleep } from "https://js.sabae.cc/sleep.js";
+import { IJScreen } from "https://ichigojam.github.io/ij-screen/ij-screen.js";
+const ijs = new IJScreen();
+divij.appendChild(ijs);
 
 const fetchAndPut = async (url, post) => {
   try {
@@ -98,9 +102,52 @@ export const scrollBottom = (comp) => {
   comp.scroll(0, comp.scrollHeight - comp.clientHeight);
 };
 
+const ALPHA_U = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ALPHA_L = "abcdefghijklmnopqrstuvwxyz";
+const upperXlower = (c) => {
+  const n = ALPHA_L.indexOf(c);
+  if (n >= 0) {
+    return ALPHA_U[n];
+  }
+  const m = ALPHA_U.indexOf(c);
+  if (m >= 0) {
+    return ALPHA_L[m];
+  }
+  return c;
+};
+
+let state = 0;
+let cx = 0;
+
 const log = (s) => {
   talog.value += s;
   scrollBottom(talog);
+  // for ij-screen
+  for (const c of s) {
+    const b = c.charCodeAt(0);
+    if (state == 0) {
+      if (b == 0x15) {
+        state = 1;
+      } else if (b == 0x13) {
+        ijs.lc(0, 0);
+      } else if (b == 0x0c) {
+        ijs.cls(); // todo: 本当の実装はカーソル以降削除
+        // https://fukuno.jig.jp/1092
+      } else if (b >= 0x20 || b == 0xa) {
+        // 大文字小文字反転
+        ijs.putc(c);
+      }
+    } else if (state == 1) {
+      cx = b - 32;
+      state = 2;
+    } else if (state == 2) {
+      const cy = b - 32;
+      ijs.lc(cx, cy);
+      state = 0;
+    } else if (b >= 0x20) {
+      ijs.putc(c);
+    }
+  }
 };
 
 const main = async (port) => {
@@ -128,6 +175,87 @@ const main = async (port) => {
   btnesc.onclick = () => {
     send("\x1b");
   };
+  let flgright = false;
+  let flgleft = false;
+  let flgup = false;
+  let flgdown = false;
+  let flgspace = false;
+  document.body.onkeydown = (e) => {
+    if (e.key == "ArrowRight") {
+      if (!flgright) {
+        flgright = true;
+        send("\x1d");
+      }
+    } else if (e.key == "ArrowLeft") {
+      if (!flgleft) {
+        flgleft = true;
+        send("\x1c");
+      }
+      /*
+    } else if (e.key == "ArrowUp") {
+      if (!flgup) {
+        flgup = true;
+        send("\x1e");
+      }
+    } else if (e.key == "ArrowDown") {
+      if (!flgdown) {
+        flgdown = true;
+        send("\x1f");
+      }
+      */
+    } else if (e.key == "Space") {
+      if (!flgspace) {
+        flgspace = true;
+        send("\x20");
+      }
+    } else if (e.key == "Escape") {
+      send("\x1b");
+    } else if (e.key == "F1") {
+      send("\x13\x0c");
+    } else if (e.key == "F2") {
+      send("LOAD");
+    } else if (e.key == "F3") {
+      send("SAVE");
+    } else if (e.key == "F4") {
+      send("LIST\n");
+    } else if (e.key == "F5") {
+      send("RUN\n");
+    } else if (e.key == "Enter") {
+      send("\n");
+    } else if (e.key.length == 1) {
+      send(upperXlower(e.key));
+    }
+  };
+  document.body.onkeyup = (e) => {
+    if (e.key == "ArrowRight") {
+      if (flgright) {
+        flgright = false;
+        send("\x1d");
+      }
+    } else if (e.key == "ArrowLeft") {
+      if (flgleft) {
+        flgleft = false;
+        send("\x1c");
+      }
+      /*
+    } else if (e.key == "ArrowUp") {
+      if (flgup) {
+        flgup = false;
+        send("\x1e");
+      }
+    } else if (e.key == "ArrowDown") {
+      if (flgdown) {
+        flgdown = false;
+        send("\x1f");
+      }
+      */
+    } else if (e.key == "Space") {
+      if (flgspace) {
+        flgspace = false;
+        send("\x20");
+      }
+    }
+  };
   const loop = async () => {
     for (;;) {
       const b = await reader.readByte();
@@ -147,6 +275,9 @@ if (ports.length > 0) {
   main(ports[0]);
 }
 
+btnfull.onclick = () => {
+  ijs.requestFullscreen();
+};
 </script>
 
 <style>
@@ -157,10 +288,14 @@ body {
   text-align: center;
 }
 main {
-  padding: 2em;
+  margin: 1em;
+}
+ij-screen {
+  margin: .5em;
+  padding: 1em;
 }
 #talog {
-  height: 400px;
+  height: 100px;
   display: block;
   width: 100%;
   border: 1px solid gray;
