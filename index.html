@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
 <title>IchigoTerm</title>
 </head><body>
 <h1>IchigoTerm</h1>
@@ -133,7 +133,7 @@ const log = (s) => {
       } else if (b == 0x0c) {
         ijs.cls(); // todo: 本当の実装はカーソル以降削除
         // https://fukuno.jig.jp/1092
-      } else if (b >= 0x20 || b == 0xa) {
+      } else if (b >= 0x20 || b == 0xa || b == 0x08) {
         // 大文字小文字反転
         ijs.putc(c);
       }
@@ -222,6 +222,8 @@ const main = async (port) => {
       send("RUN\n");
     } else if (e.key == "Enter") {
       send("\n");
+    } else if (e.key == "Backspace") {
+      send("\x08");
     } else if (e.key.length == 1) {
       send(upperXlower(e.key));
     }
