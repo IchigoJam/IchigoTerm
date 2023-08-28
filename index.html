@@ -22,6 +22,7 @@
 
 <script type="module">
 import { BufferedReader } from "https://js.sabae.cc/BufferedReader.js";
+//import { BufferedReader } from "./BufferedReader.js";
 import { TextWriter } from "https://js.sabae.cc/TextWriter.js";
 import { sleep } from "https://js.sabae.cc/sleep.js";
 import { IJScreen } from "https://ichigojam.github.io/ij-screen/ij-screen.js";
@@ -150,11 +151,17 @@ const log = (s) => {
   }
 };
 
+let runmain = false;
 const main = async (port) => {
+  if (runmain) return;
+  runmain = true;
+
   const baudRate = 115200;
   await port.open({ baudRate });
   const writer = new TextWriter(port.writable.getWriter());
-  const reader = new BufferedReader(port.readable.getReader({ mode: "byob" }));
+  //const preader = port.readable.getReader();
+  const preader = port.readable.getReader({ mode: "byob" });
+  const reader = new BufferedReader(preader);
 
   const send = (s) => {
     writer.writeString(s);
@@ -259,23 +266,29 @@ const main = async (port) => {
     }
   };
   const loop = async () => {
-    for (;;) {
+    for (let i = 0;; i++) {
       const b = await reader.readByte();
       const c = String.fromCharCode(b);
       log(c);
+      if (i == 10) {
+        await sleep(1);
+        i = 0;
+      }
     }
   };
   loop();
-}
+};
 btnreq.onclick = async () => {
   const port = await navigator.serial.requestPort();
   main(port);
 };
 
+/*
 const ports = await navigator.serial.getPorts();
 if (ports.length > 0) {
   main(ports[0]);
 }
+*/
 
 btnfull.onclick = () => {
   ijs.requestFullscreen();
