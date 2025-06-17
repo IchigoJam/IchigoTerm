@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>IchigoConnect - USBシリアル経由でIchigoJam制御</title>
+</head><body>
+<h1>IchigoConnect</h1>
+
+<button id=btn>USBシリアルを通じてIchigoJam/IchigoDakeに接続</button> <button id=btn_close>切断</button><br>
+<h2>LED</h2>
+<button id=btn_led1>LED1</button> <button id=btn_led0>LED0</button><br>
+<h2>OUT</h2>
+<div id=outs1></div>
+<div id=outs2></div>
+<h2>BEEP</h2>
+<button id=btn_beep>BEEP</button> <button id=btn_beep5>BEEP5</button> <button id=btn_play>PLAY"CDE"</button><br>
+
+<hr>
+<a href=https://github.com/ichigojam/IchigoTerm/>src on GitHub</a><br>
+
+<script type="module">
+import { IchigoConnect } from "./IchigoConnect.js";
+
+for (let i = 1; i <= 7; i++) {
+  const btn = document.createElement("button");
+  const s = "OUT" + i + ",";
+  btn.textContent = s + "1";
+  outs1.appendChild(btn);
+
+  const btn2 = document.createElement("button");
+  btn2.textContent = s + "0";
+  outs2.appendChild(btn2);
+}
+
+const init = () => {
+  btn.disabled = false;
+  const btns = document.querySelectorAll("button");
+  for (const b of btns) {
+    if (b == btn) continue;
+    b.disabled = true;
+  }
+};
+init();
+
+btn.onclick = async () => {
+  try {
+    const ic = await IchigoConnect.create();
+    const btns = document.querySelectorAll("button");
+    for (const b of btns) {
+      if (b == btn || b == btn_close) continue;
+      b.disabled = false;
+      b.onclick = () => ic.write(b.textContent + "\n");
+    }
+    btn.disabled = true;
+    btn_close.disabled = false;
+    btn_close.onclick = async () => {
+      await ic.close();
+      init();
+    };
+  } catch (e) {
+    alert("WebSerial非対応の環境のようです\n" + e);
+  }
+};
+</script>
+
+<style>
+body {
+  font-family: sans-serif;
+  padding: 1em;
+}
+hr {
+  margin-top: 2em;
+}
+</style>
+
+</body></html>
