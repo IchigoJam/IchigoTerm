@@ -12,7 +12,7 @@
 	  <input type=file id=fileinput accept=".txt,.bas,. bas,.ij">
 	  <span id=filename>（未選択）</span>
 	</div>
-	<textarea id=tapaste placeholder="ここに複数行テキストをペースト（またはファイルを選択）"></textarea>
+	<textarea id=tapaste placeholder="ここに複数行テキストをペースト、またはファイルをドロップ"></textarea>
 	<div id=pastecontrols>
 	  <label>行間ディレイ: <input type=number id=pastedelay value=300 min=50 max=5000 step=50>ms</label>
 	  <button id=btnpaste>▶ 一括送信</button>
@@ -22,6 +22,7 @@
   </div>
 
   <div class=buttons>
+	<span id=indicator><span id=dot></span><span id=connlabel>切断中</span></span>
 	<button id=btnreq>connect</button> → 
 	<button id=btnled1>LED1</button>
 	<button id=btnled0>LED0</button>
@@ -188,18 +189,6 @@ const main = async (port) => {
 	e.preventDefault();
   };
 
-  // ファイル選択 → textareaに読み込む
-  fileinput.onchange = () => {
-	const file = fileinput.files[0];
-	if (!file) return;
-	filename.textContent = file.name;
-	const reader = new FileReader();
-	reader.onload = (e) => {
-	  tapaste.value = e.target.result;
-	};
-	reader.readAsText(file, "UTF-8");
-  };
-
   // 複数行ペースト送信
   let pasteAbort = false;
   btnpaste.onclick = async () => {
@@ -283,7 +272,7 @@ const main = async (port) => {
 	  send("\n");
 	} else if (e.key == "Backspace") {
 	  send("\x08");
-	} else if (e.key.length == 1) {
+	} else if (e.key.length == 1 && !e.ctrlKey && !e.metaKey) {
 	  send(upperXlower(e.key));
 	}
   };
@@ -330,9 +319,42 @@ const main = async (port) => {
   };
   loop();
 };
+// ファイル読み込み共通処理（トップレベル - 接続前から有効）
+const loadFile = (file) => {
+  if (!file) return;
+  filename.textContent = file.name;
+  const fr = new FileReader();
+  fr.onload = (e) => {
+	tapaste.value = e.target.result;
+  };
+  fr.readAsText(file, "UTF-8");
+};
+
+// ファイル選択ボタン
+fileinput.onchange = () => loadFile(fileinput.files[0]);
+
+// ドラッグ＆ドロップ
+pastebar.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  pastebar.classList.add("dragover");
+});
+pastebar.addEventListener("dragleave", () => {
+  pastebar.classList.remove("dragover");
+});
+pastebar.addEventListener("drop", (e) => {
+  e.preventDefault();
+  pastebar.classList.remove("dragover");
+  const file = e.dataTransfer.files[0];
+  loadFile(file);
+});
+
 btnreq.onclick = async () => {
   const port = await navigator.serial.requestPort();
   main(port);
+  dot.className = "connected";
+  connlabel.textContent = "接続中";
+  btnreq.textContent = "connected";
+  btnreq.disabled = true;
 };
 
 /*
@@ -389,6 +411,10 @@ ij-screen {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+#pastebar.dragover {
+  border-color: #66a;
+  background: #eef;
+}
 #pastebar {
   margin: .5em 0;
   border: 1px solid #aaa;
@@ -440,6 +466,26 @@ ij-screen {
 }
 #btnsend {
   width: 5em;
+}
+#indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: .3em;
+  margin-right: .6em;
+  font-size: .85em;
+  color: #555;
+}
+#dot {
+  width: .7em;
+  height: .7em;
+  border-radius: 50%;
+  background: #bbb;
+  display: inline-block;
+  transition: background .3s;
+}
+#dot.connected {
+  background: #2a2;
+  box-shadow: 0 0 4px #2a2;
 }
 .buttons {
   margin: 1em;
