@@ -7,7 +7,12 @@
   <textarea id=talog></textarea>
   <form id=form><input id=inp><button id=btnsend>SEND</button></form>
   <div id=pastebar>
-	<textarea id=tapaste placeholder="ここに複数行テキストをペースト"></textarea>
+	<div id=fileselectbar>
+	  <label id=filelabel for=fileinput>📂 ファイルを選択</label>
+	  <input type=file id=fileinput accept=".txt,.bas,. bas,.ij">
+	  <span id=filename>（未選択）</span>
+	</div>
+	<textarea id=tapaste placeholder="ここに複数行テキストをペースト（またはファイルを選択）"></textarea>
 	<div id=pastecontrols>
 	  <label>行間ディレイ: <input type=number id=pastedelay value=300 min=50 max=5000 step=50>ms</label>
 	  <button id=btnpaste>▶ 一括送信</button>
@@ -183,6 +188,18 @@ const main = async (port) => {
 	e.preventDefault();
   };
 
+  // ファイル選択 → textareaに読み込む
+  fileinput.onchange = () => {
+	const file = fileinput.files[0];
+	if (!file) return;
+	filename.textContent = file.name;
+	const reader = new FileReader();
+	reader.onload = (e) => {
+	  tapaste.value = e.target.result;
+	};
+	reader.readAsText(file, "UTF-8");
+  };
+
   // 複数行ペースト送信
   let pasteAbort = false;
   btnpaste.onclick = async () => {
@@ -343,6 +360,34 @@ main {
 ij-screen {
   margin: .5em;
   padding: 1em;
+}
+#fileselectbar {
+  display: flex;
+  align-items: center;
+  gap: .5em;
+  margin-bottom: .4em;
+}
+#fileinput {
+  display: none;
+}
+#filelabel {
+  cursor: pointer;
+  padding: .3em .7em;
+  background: #e0e8ff;
+  border: 1px solid #88a;
+  border-radius: 4px;
+  font-size: .9em;
+  white-space: nowrap;
+}
+#filelabel:hover {
+  background: #c8d8ff;
+}
+#filename {
+  font-size: .85em;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 #pastebar {
   margin: .5em 0;
