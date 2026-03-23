@@ -6,14 +6,23 @@
   <div id=divij></div>
   <textarea id=talog></textarea>
   <form id=form><input id=inp><button id=btnsend>SEND</button></form>
+  <div id=pastebar>
+	<textarea id=tapaste placeholder="ここに複数行テキストをペースト"></textarea>
+	<div id=pastecontrols>
+	  <label>行間ディレイ: <input type=number id=pastedelay value=300 min=50 max=5000 step=50>ms</label>
+	  <button id=btnpaste>▶ 一括送信</button>
+	  <button id=btnpastestop disabled>■ 停止</button>
+	  <span id=pastestatus></span>
+	</div>
+  </div>
 
   <div class=buttons>
-    <button id=btnreq>connect</button> → 
-    <button id=btnled1>LED1</button>
-    <button id=btnled0>LED0</button>
-    <button id=btnesc>ESC</button>
-    <button id=btnfull>FULL</button>
-    <label><input type=checkbox id=mixjuice>MixJuice</label>
+	<button id=btnreq>connect</button> → 
+	<button id=btnled1>LED1</button>
+	<button id=btnled0>LED0</button>
+	<button id=btnesc>ESC</button>
+	<button id=btnfull>FULL</button>
+	<label><input type=checkbox id=mixjuice>MixJuice</label>
   </div>
 </main>
 
@@ -31,67 +40,67 @@ divij.appendChild(ijs);
 
 const fetchAndPut = async (url, post) => {
   try {
-    const opt = !post ? undefined : {
-      method: "POST",
-      body: encodeBin(post),
-      headers: {
-        //"Content-type": "application/octet-stream",
-        "Content-type": "text/plain",
-      },
-    };
-    const bin = await (await fetch(url, opt)).arrayBuffer();
-    const s = new Uint8Array(bin);
-    for (let i = 0; i < s.length; i++) {
-      const c = s[i];
-      putc(c);
-      await sleep(30);
-      if (!iopanel.chkmixjuice.checked) {
-        break;
-      }
-    }
+	const opt = !post ? undefined : {
+	  method: "POST",
+	  body: encodeBin(post),
+	  headers: {
+		//"Content-type": "application/octet-stream",
+		"Content-type": "text/plain",
+	  },
+	};
+	const bin = await (await fetch(url, opt)).arrayBuffer();
+	const s = new Uint8Array(bin);
+	for (let i = 0; i < s.length; i++) {
+	  const c = s[i];
+	  putc(c);
+	  await sleep(30);
+	  if (!iopanel.chkmixjuice.checked) {
+		break;
+	  }
+	}
   } catch (e) {
-    console.log(e);
+	console.log(e);
   }
 };
 
 export class MixJuice {
   constructor() {
-    this.buf = "";
-    this.posts = null;
-    this.postsurl = null;
+	this.buf = "";
+	this.posts = null;
+	this.postsurl = null;
   }
   write(c) {
-    for (;;) {
-      this.buf += c;
-      const n = this.buf.indexOf("\n");
-      if (n < 0) {
-        return;
-      }
-      const s = this.buf.substring(n);
-      this.buf = this.buf.substring(n + 1);
+	for (;;) {
+	  this.buf += c;
+	  const n = this.buf.indexOf("\n");
+	  if (n < 0) {
+		return;
+	  }
+	  const s = this.buf.substring(n);
+	  this.buf = this.buf.substring(n + 1);
 
-      if (s.startsWith("MJ ")) {
-        if (s.startsWith("MJ GET ")) {
-          const url = "http://" + s.substring(7);
-          fetchAndPut(url);
-        } else if (s.startsWith("MJ GETS ")) {
-          const url = "https://" + s.substring(8);
-          fetchAndPut(url);
-        } else if (s.startsWith("MJ POSTS START ")) {
-          this.postsurl = "https://" + s.substring(15);
-          console.log(postsurl)
-          this.posts = [];
-          return;
-        } else if (s == "MJ POSTS END") {
-          fetchAndPut(this.postsurl, this.posts.join("\n"));
-        }
-        /*
-        MJ PCT contenttype
-        */
-      }
-      if (this.posts != null) {
-        this.posts.push(s);
-      }
+	  if (s.startsWith("MJ ")) {
+		if (s.startsWith("MJ GET ")) {
+		  const url = "http://" + s.substring(7);
+		  fetchAndPut(url);
+		} else if (s.startsWith("MJ GETS ")) {
+		  const url = "https://" + s.substring(8);
+		  fetchAndPut(url);
+		} else if (s.startsWith("MJ POSTS START ")) {
+		  this.postsurl = "https://" + s.substring(15);
+		  console.log(postsurl)
+		  this.posts = [];
+		  return;
+		} else if (s == "MJ POSTS END") {
+		  fetchAndPut(this.postsurl, this.posts.join("\n"));
+		}
+		/*
+		MJ PCT contenttype
+		*/
+	  }
+	  if (this.posts != null) {
+		this.posts.push(s);
+	  }
 		}
   }
   async read() {
@@ -108,11 +117,11 @@ const ALPHA_L = "abcdefghijklmnopqrstuvwxyz";
 const upperXlower = (c) => {
   const n = ALPHA_L.indexOf(c);
   if (n >= 0) {
-    return ALPHA_U[n];
+	return ALPHA_U[n];
   }
   const m = ALPHA_U.indexOf(c);
   if (m >= 0) {
-    return ALPHA_L[m];
+	return ALPHA_L[m];
   }
   return c;
 };
@@ -125,29 +134,29 @@ const log = (s) => {
   scrollBottom(talog);
   // for ij-screen
   for (const c of s) {
-    const b = c.charCodeAt(0);
-    if (state == 0) {
-      if (b == 0x15) {
-        state = 1;
-      } else if (b == 0x13) {
-        ijs.lc(0, 0);
-      } else if (b == 0x0c) {
-        ijs.cls(); // todo: 本当の実装はカーソル以降削除
-        // https://fukuno.jig.jp/1092
-      } else if (b >= 0x20 || b == 0xa || b == 0x08) {
-        // 大文字小文字反転
-        ijs.putc(c);
-      }
-    } else if (state == 1) {
-      cx = b - 32;
-      state = 2;
-    } else if (state == 2) {
-      const cy = b - 32;
-      ijs.lc(cx, cy);
-      state = 0;
-    } else if (b >= 0x20) {
-      ijs.putc(c);
-    }
+	const b = c.charCodeAt(0);
+	if (state == 0) {
+	  if (b == 0x15) {
+		state = 1;
+	  } else if (b == 0x13) {
+		ijs.lc(0, 0);
+	  } else if (b == 0x0c) {
+		ijs.cls(); // todo: 本当の実装はカーソル以降削除
+		// https://fukuno.jig.jp/1092
+	  } else if (b >= 0x20 || b == 0xa || b == 0x08) {
+		// 大文字小文字反転
+		ijs.putc(c);
+	  }
+	} else if (state == 1) {
+	  cx = b - 32;
+	  state = 2;
+	} else if (state == 2) {
+	  const cy = b - 32;
+	  ijs.lc(cx, cy);
+	  state = 0;
+	} else if (b >= 0x20) {
+	  ijs.putc(c);
+	}
   }
 };
 
@@ -164,23 +173,49 @@ const main = async (port) => {
   const reader = new BufferedReader(preader);
 
   const send = (s) => {
-    writer.writeString(s);
-    log(s);
+	writer.writeString(s);
+	log(s);
   };
   btnsend.onclick = form.onsubmit = (e) => {
-    const s = inp.value + "\n";
-    send(s);
-    inp.value = "";
-    e.preventDefault();
+	const s = inp.value + "\n";
+	send(s);
+	inp.value = "";
+	e.preventDefault();
+  };
+
+  // 複数行ペースト送信
+  let pasteAbort = false;
+  btnpaste.onclick = async () => {
+	const lines = tapaste.value.split(/\r?\n/);
+	if (lines.length === 0 || tapaste.value.trim() === "") return;
+	const delay = parseInt(pastedelay.value) || 300;
+	pasteAbort = false;
+	btnpaste.disabled = true;
+	btnpastestop.disabled = false;
+	for (let i = 0; i < lines.length; i++) {
+	  if (pasteAbort) break;
+	  const line = lines[i];
+	  send(line + "\n");
+	  pastestatus.textContent = `送信中… ${i + 1} / ${lines.length} 行`;
+	  if (i < lines.length - 1) {
+		await sleep(delay);
+	  }
+	}
+	btnpaste.disabled = false;
+	btnpastestop.disabled = true;
+	pastestatus.textContent = pasteAbort ? "停止しました" : "送信完了";
+  };
+  btnpastestop.onclick = () => {
+	pasteAbort = true;
   };
   btnled1.onclick = () => {
-    send("LED1\n");
+	send("LED1\n");
   };
   btnled0.onclick = () => {
-    send("LED0\n");
+	send("LED0\n");
   };
   btnesc.onclick = () => {
-    send("\x1b");
+	send("\x1b");
   };
   let flgright = false;
   let flgleft = false;
@@ -188,93 +223,93 @@ const main = async (port) => {
   let flgdown = false;
   let flgspace = false;
   document.body.onkeydown = (e) => {
-    if (e.key == "ArrowRight") {
-      if (!flgright) {
-        flgright = true;
-        send("\x1d");
-      }
-    } else if (e.key == "ArrowLeft") {
-      if (!flgleft) {
-        flgleft = true;
-        send("\x1c");
-      }
-      /*
-    } else if (e.key == "ArrowUp") {
-      if (!flgup) {
-        flgup = true;
-        send("\x1e");
-      }
-    } else if (e.key == "ArrowDown") {
-      if (!flgdown) {
-        flgdown = true;
-        send("\x1f");
-      }
-      */
-    } else if (e.key == "Space") {
-      if (!flgspace) {
-        flgspace = true;
-        send("\x20");
-      }
-    } else if (e.key == "Escape") {
-      send("\x1b");
-    } else if (e.key == "F1") {
-      send("\x13\x0c");
-    } else if (e.key == "F2") {
-      send("LOAD");
-    } else if (e.key == "F3") {
-      send("SAVE");
-    } else if (e.key == "F4") {
-      send("LIST\n");
-    } else if (e.key == "F5") {
-      send("RUN\n");
-    } else if (e.key == "Enter") {
-      send("\n");
-    } else if (e.key == "Backspace") {
-      send("\x08");
-    } else if (e.key.length == 1) {
-      send(upperXlower(e.key));
-    }
+	if (e.key == "ArrowRight") {
+	  if (!flgright) {
+		flgright = true;
+		send("\x1d");
+	  }
+	} else if (e.key == "ArrowLeft") {
+	  if (!flgleft) {
+		flgleft = true;
+		send("\x1c");
+	  }
+	  /*
+	} else if (e.key == "ArrowUp") {
+	  if (!flgup) {
+		flgup = true;
+		send("\x1e");
+	  }
+	} else if (e.key == "ArrowDown") {
+	  if (!flgdown) {
+		flgdown = true;
+		send("\x1f");
+	  }
+	  */
+	} else if (e.key == "Space") {
+	  if (!flgspace) {
+		flgspace = true;
+		send("\x20");
+	  }
+	} else if (e.key == "Escape") {
+	  send("\x1b");
+	} else if (e.key == "F1") {
+	  send("\x13\x0c");
+	} else if (e.key == "F2") {
+	  send("LOAD");
+	} else if (e.key == "F3") {
+	  send("SAVE");
+	} else if (e.key == "F4") {
+	  send("LIST\n");
+	} else if (e.key == "F5") {
+	  send("RUN\n");
+	} else if (e.key == "Enter") {
+	  send("\n");
+	} else if (e.key == "Backspace") {
+	  send("\x08");
+	} else if (e.key.length == 1) {
+	  send(upperXlower(e.key));
+	}
   };
   document.body.onkeyup = (e) => {
-    if (e.key == "ArrowRight") {
-      if (flgright) {
-        flgright = false;
-        send("\x1d");
-      }
-    } else if (e.key == "ArrowLeft") {
-      if (flgleft) {
-        flgleft = false;
-        send("\x1c");
-      }
-      /*
-    } else if (e.key == "ArrowUp") {
-      if (flgup) {
-        flgup = false;
-        send("\x1e");
-      }
-    } else if (e.key == "ArrowDown") {
-      if (flgdown) {
-        flgdown = false;
-        send("\x1f");
-      }
-      */
-    } else if (e.key == "Space") {
-      if (flgspace) {
-        flgspace = false;
-        send("\x20");
-      }
-    }
+	if (e.key == "ArrowRight") {
+	  if (flgright) {
+		flgright = false;
+		send("\x1d");
+	  }
+	} else if (e.key == "ArrowLeft") {
+	  if (flgleft) {
+		flgleft = false;
+		send("\x1c");
+	  }
+	  /*
+	} else if (e.key == "ArrowUp") {
+	  if (flgup) {
+		flgup = false;
+		send("\x1e");
+	  }
+	} else if (e.key == "ArrowDown") {
+	  if (flgdown) {
+		flgdown = false;
+		send("\x1f");
+	  }
+	  */
+	} else if (e.key == "Space") {
+	  if (flgspace) {
+		flgspace = false;
+		send("\x20");
+	  }
+	}
   };
   const loop = async () => {
-    for (let i = 0;; i++) {
-      const b = await reader.readByte();
-      const c = String.fromCharCode(b);
-      log(c);
-      if (i == 10) {
-        await sleep(1);
-        i = 0;
-      }
-    }
+	for (let i = 0;; i++) {
+	  const b = await reader.readByte();
+	  const c = String.fromCharCode(b);
+	  log(c);
+	  if (i == 10) {
+		await sleep(1);
+		i = 0;
+	  }
+	}
   };
   loop();
 };
@@ -309,7 +344,38 @@ ij-screen {
   margin: .5em;
   padding: 1em;
 }
-#talog {
+#pastebar {
+  margin: .5em 0;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: .5em;
+  background: #f9f9f9;
+}
+#tapaste {
+  display: block;
+  width: 100%;
+  height: 80px;
+  font-family: monospace;
+  font-size: .9em;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  resize: vertical;
+}
+#pastecontrols {
+  display: flex;
+  align-items: center;
+  gap: .5em;
+  margin-top: .4em;
+  flex-wrap: wrap;
+}
+#pastedelay {
+  width: 5em;
+}
+#pastestatus {
+  font-size: .85em;
+  color: #555;
+}
+
   height: 100px;
   display: block;
   width: 100%;
