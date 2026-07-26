@@ -23,7 +23,7 @@
 
   <div class=buttons>
 	<span id=indicator><span id=dot></span><span id=connlabel>切断中</span></span>
-	<button id=btnreq>connect</button> → 
+	<button id=btnreq>接続</button> →
 	<button id=btnled1>LED1</button>
 	<button id=btnled0>LED0</button>
 	<button id=btnesc>ESC</button>
@@ -167,18 +167,42 @@ const log = (s) => {
 };
 
 let runmain = false;
+let disconnect = null;
 const main = async (port) => {
   if (runmain) return;
   runmain = true;
 
   const baudRate = 115200;
-  await port.open({ baudRate });
-  const writer = new TextWriter(port.writable.getWriter());
+  try {
+	await port.open({ baudRate });
+  } catch (e) {
+	runmain = false;
+	throw e;
+  }
+  const portWriter = port.writable.getWriter();
+  const writer = new TextWriter(portWriter);
   //const preader = port.readable.getReader();
   const preader = port.readable.getReader({ mode: "byob" });
   const reader = new BufferedReader(preader);
+  let connected = true;
+
+  disconnect = async () => {
+	if (!connected) return;
+	connected = false;
+	await preader.cancel().catch(() => {});
+	preader.releaseLock();
+	await portWriter.close().catch(() => {});
+	portWriter.releaseLock();
+	await port.close();
+	runmain = false;
+	disconnect = null;
+	dot.className = "";
+	connlabel.textContent = "切断中";
+	btnreq.textContent = "接続";
+  };
 
   const send = (s) => {
+	if (!connected) return;
 	writer.writeString(s);
 	log(s);
   };
@@ -229,6 +253,7 @@ const main = async (port) => {
   let flgdown = false;
   let flgspace = false;
   document.body.onkeydown = (e) => {
+	if (e.target == inp) return;
 	if (e.key == "ArrowRight") {
 	  if (!flgright) {
 		flgright = true;
@@ -277,6 +302,7 @@ const main = async (port) => {
 	}
   };
   document.body.onkeyup = (e) => {
+	if (e.target == inp) return;
 	if (e.key == "ArrowRight") {
 	  if (flgright) {
 		flgright = false;
@@ -307,14 +333,18 @@ const main = async (port) => {
 	}
   };
   const loop = async () => {
-	for (let i = 0;; i++) {
-	  const b = await reader.readByte();
-	  const c = String.fromCharCode(b);
-	  log(c);
-	  if (i == 10) {
-		await sleep(1);
-		i = 0;
+	try {
+	  for (let i = 0; connected; i++) {
+		const b = await reader.readByte();
+		const c = String.fromCharCode(b);
+		log(c);
+		if (i == 10) {
+		  await sleep(1);
+		  i = 0;
+		}
 	  }
+	} catch (e) {
+	  if (connected) console.error(e);
 	}
   };
   loop();
@@ -349,12 +379,19 @@ pastebar.addEventListener("drop", (e) => {
 });
 
 btnreq.onclick = async () => {
-  const port = await navigator.serial.requestPort();
-  main(port);
-  dot.className = "connected";
-  connlabel.textContent = "接続中";
-  btnreq.textContent = "connected";
-  btnreq.disabled = true;
+  if (disconnect) {
+	await disconnect();
+	return;
+  }
+  try {
+	const port = await navigator.serial.requestPort();
+	await main(port);
+	dot.className = "connected";
+	connlabel.textContent = "接続中";
+	btnreq.textContent = "切断";
+  } catch (e) {
+	console.error(e);
+  }
 };
 
 /*
