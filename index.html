@@ -1,11 +1,11 @@
 <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
 <title>IchigoTerm</title>
 </head><body>
-<h1>IchigoTerm</h1>
 <main id=main>
+	<h1>IchigoTerm</h1>
   <div id=divij></div>
   <textarea id=talog></textarea>
-  <form id=form><input id=inp><button id=btnsend>SEND</button></form>
+  <form id=form><input id=inp><button id=btnsend>送信</button></form>
   <div id=pastebar>
 	<div id=fileselectbar>
 	  <label id=filelabel for=fileinput>📂 ファイルを選択</label>
@@ -379,6 +379,7 @@ pastebar.addEventListener("drop", (e) => {
 });
 
 btnreq.onclick = async () => {
+  btnreq.blur();
   if (disconnect) {
 	await disconnect();
 	return;
@@ -410,15 +411,22 @@ btnfull.onclick = () => {
 * {
   box-sizing: border-box;
 }
+h1 {
+	padding: 0;
+	margin: 0;
+}
 body {
+	margin: 0;
   text-align: center;
 }
 main {
-  margin: 1em;
+  margin: .5em;
 }
 ij-screen {
   margin: .5em;
   padding: 1em;
+	max-height: 50vh;
+	aspect-ratio: 4 / 3;
 }
 #fileselectbar {
   display: flex;
@@ -500,6 +508,8 @@ ij-screen {
 }
 #inp {
   flex: 1;
+	font-size: 16px;
+	padding: .3em;
 }
 #btnsend {
   width: 5em;
