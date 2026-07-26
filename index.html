@@ -52,7 +52,9 @@ import { IJScreen } from "https://ichigojam.github.io/ij-screen/ij-screen.js";
 const ijs = new IJScreen();
 divij.appendChild(ijs);
 const ijScreenResizeObserver = new ResizeObserver(([entry]) => {
-  ijs.style.fontSize = `${entry.contentRect.width / (32 * .8)}px`;
+  const fontWidth = entry.contentRect.width / (32 * .8);
+  const fontHeight = entry.contentRect.height / (24 * .8);
+  ijs.style.fontSize = `${Math.min(fontWidth, fontHeight)}px`;
 });
 ijScreenResizeObserver.observe(ijs);
 
