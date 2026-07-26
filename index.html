@@ -30,9 +30,13 @@
   <div class=buttons>
 	<button id=btnled1>LED1</button>
 	<button id=btnled0>LED0</button>
+  &nbsp;
 	<button id=btnesc>ESC</button>
-	<button id=btnfull>FULL</button>
+	<button id=btncls>CLS</button>
+	<button id=btnlist>LIST</button>
+	<button id=btnrun>RUN</button>
 	<label><input type=checkbox id=mixjuice>MixJuice</label>
+	<label><input type=checkbox id=chkfull>FullScreen</label>
   </div>
 </main>
 
@@ -180,10 +184,9 @@ const showConnectRequired = (e) => {
   alert("まずは「接続」してください。");
 };
 const setDisconnectedControls = () => {
-  btnpaste.onclick = showConnectRequired;
-  btnled1.onclick = showConnectRequired;
-  btnled0.onclick = showConnectRequired;
-  btnesc.onclick = showConnectRequired;
+  for (const btn of [btnpaste, btnled1, btnled0, btncls, btnlist, btnrun]) {
+    btn.onclik = showConnectRequired;
+  }
 };
 form.onsubmit = showConnectRequired;
 setDisconnectedControls();
@@ -267,6 +270,15 @@ const main = async (port) => {
   btnled0.onclick = () => {
     send("LED0\n");
   };
+  btncls.onclick = () => {
+    send("CLS\n");
+  };
+  btnlist.onclick = () => {
+    send("LIST\n");
+  };
+  btnrun.onclick = () => {
+    send("RUN\n");
+  };
   btnesc.onclick = () => {
     send("\x1b");
   };
@@ -277,7 +289,10 @@ const main = async (port) => {
   let flgspace = false;
   document.body.onkeydown = (e) => {
     if (e.target == inp) return;
-    if (e.key == "ArrowRight") {
+    if (e.ctrlKey && e.key.toLowerCase() == "c") {
+      e.preventDefault();
+      send("\x1b");
+    } else if (e.key == "ArrowRight") {
       if (!flgright) {
         flgright = true;
         send("\x1d");
@@ -425,8 +440,11 @@ if (ports.length > 0) {
 }
 */
 
-btnfull.onclick = () => {
-  ijs.requestFullscreen();
+chkfull.onchange = () => {
+  if (chkfull.checked) {
+    ijs.requestFullscreen();
+    chkfull.checked = false;
+  }
 };
 </script>
 
@@ -574,6 +592,9 @@ ij-screen {
 }
 .buttons {
   margin: 1em;
+}
+.buttons button {
+  font-size: 105%;
 }
 a {
   color: gray !important;
