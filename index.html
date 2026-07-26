@@ -2,10 +2,16 @@
 <title>IchigoTerm</title>
 </head><body>
 <main id=main>
-	<h1>IchigoTerm</h1>
+  <div id=titlebar>
+    <h1>IchigoTerm</h1>
+    <div id=connection>
+      <button id=btnreq>接続</button>
+      <span id=indicator><span id=dot></span><span id=connlabel>切断中</span></span>
+    </div>
+  </div>
   <div id=divij></div>
-  <textarea id=talog></textarea>
-  <form id=form><input id=inp><button id=btnsend>送信</button></form>
+  <textarea id=talog placeholder="IchigoJamから受信した内容が表示されます"></textarea>
+  <form id=form><input id=inp placeholder="ここにコマンドを入力"><button id=btnsend>送信</button></form>
   <div id=pastebar>
 	<div id=fileselectbar>
 	  <label id=filelabel for=fileinput>📂 ファイルを選択</label>
@@ -22,8 +28,6 @@
   </div>
 
   <div class=buttons>
-	<span id=indicator><span id=dot></span><span id=connlabel>切断中</span></span>
-	<button id=btnreq>接続</button> →
 	<button id=btnled1>LED1</button>
 	<button id=btnled0>LED0</button>
 	<button id=btnesc>ESC</button>
@@ -43,6 +47,10 @@ import { sleep } from "https://js.sabae.cc/sleep.js";
 import { IJScreen } from "https://ichigojam.github.io/ij-screen/ij-screen.js";
 const ijs = new IJScreen();
 divij.appendChild(ijs);
+const ijScreenResizeObserver = new ResizeObserver(([entry]) => {
+  ijs.style.fontSize = `${entry.contentRect.width / (32 * .8)}px`;
+});
+ijScreenResizeObserver.observe(ijs);
 
 const fetchAndPut = async (url, post) => {
   try {
@@ -167,6 +175,19 @@ const log = (s) => {
 
 let runmain = false;
 let disconnect = null;
+const showConnectRequired = (e) => {
+  e.preventDefault();
+  alert("まずは「接続」してください。");
+};
+const setDisconnectedControls = () => {
+  btnpaste.onclick = showConnectRequired;
+  btnled1.onclick = showConnectRequired;
+  btnled0.onclick = showConnectRequired;
+  btnesc.onclick = showConnectRequired;
+};
+form.onsubmit = showConnectRequired;
+setDisconnectedControls();
+
 const main = async (port) => {
   if (runmain) return;
   runmain = true;
@@ -198,6 +219,8 @@ const main = async (port) => {
     dot.className = "";
     connlabel.textContent = "切断中";
     btnreq.textContent = "接続";
+    form.onsubmit = showConnectRequired;
+    setDisconnectedControls();
   };
 
   const send = (s) => {
@@ -205,11 +228,12 @@ const main = async (port) => {
     writer.writeString(s);
     log(s);
   };
-  btnsend.onclick = form.onsubmit = (e) => {
+  form.onsubmit = (e) => {
+    e.preventDefault();
     const s = inp.value + "\n";
     send(s);
     inp.value = "";
-    e.preventDefault();
+    return false;
   };
 
   // 複数行ペースト送信
@@ -414,6 +438,16 @@ h1 {
 	padding: 0;
 	margin: 0;
 }
+#titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#connection {
+  display: flex;
+  align-items: center;
+  gap: .6em;
+}
 body {
 	margin: 0;
   text-align: center;
@@ -422,10 +456,13 @@ main {
   margin: .5em;
 }
 ij-screen {
-  margin: .5em;
+  box-sizing: border-box;
+  display: block;
+  width: min(95%, 66.6667vh);
+  margin: .5em auto;
   padding: 1em;
-	max-height: 50vh;
-	aspect-ratio: 4 / 3;
+  max-height: 50vh;
+  aspect-ratio: 4 / 3;
 }
 #fileselectbar {
   display: flex;
@@ -487,6 +524,8 @@ ij-screen {
 }
 #pastedelay {
   width: 5em;
+  text-align: right;
+  margin-right: .2em;
 }
 #pastestatus {
   font-size: .85em;
@@ -499,6 +538,7 @@ ij-screen {
   width: 100%;
   border: 1px solid gray;
   resize: none;
+  padding: .5em;
 }
 #form {
   display: flex;
@@ -517,7 +557,6 @@ ij-screen {
   display: inline-flex;
   align-items: center;
   gap: .3em;
-  margin-right: .6em;
   font-size: .85em;
   color: #555;
 }
