@@ -11,12 +11,53 @@
 <div id=outs2></div>
 <h2>BEEP</h2>
 <button id=btn_beep>BEEP</button> <button id=btn_beep5>BEEP5</button> <button id=btn_play>PLAY"CDE"</button><br>
+<h2>INPUT</h2>
+<button id=btn_btn>?BTN()</button> <button id=btn_ana>?ANA()</button><br>
+<textarea id=receive readonly placeholder="受信した文字列を表示"></textarea>
+
+<section id=usage>
+<h2>IchigoConnect.jsの使い方</h2>
+<p>ESモジュールとして読み込み、ユーザー操作をきっかけに<code>create()</code>を呼び出します。</p>
+<pre><code>import { IchigoConnect } from "./IchigoConnect.js";
+
+const ic = await IchigoConnect.create();
+
+const button = await ic.send("?BTN()\n");
+console.log(button);
+
+const analog = await ic.send("?ANA()\n");
+console.log(analog);
+
+await ic.close();</code></pre>
+
+<h3>メソッド</h3>
+<dl>
+  <dt><code>IchigoConnect.create()</code></dt>
+  <dd>シリアルポートの選択画面を表示し、115200bpsで接続します。</dd>
+
+  <dt><code>send(string)</code></dt>
+  <dd>受信済みバッファをクリアして文字列を送信し、50ms待ってから受信した先頭行を返します。</dd>
+
+  <dt><code>write(string)</code></dt>
+  <dd>文字列を送信します。応答は待ちません。コマンドを実行する場合は末尾に<code>\n</code>を付けます。</dd>
+
+  <dt><code>readLine()</code></dt>
+  <dd>次の1行を受信するまで待ち、改行を除いた文字列を返します。切断済みの場合は<code>null</code>を返します。</dd>
+
+  <dt><code>readLines()</code></dt>
+  <dd>少なくとも1行を受信するまで待ち、その時点までに受信した行を文字列の配列で返します。</dd>
+
+  <dt><code>close()</code></dt>
+  <dd>読み書きを終了し、シリアルポートを切断します。</dd>
+</dl>
+</section>
 
 <hr>
 <a href=https://github.com/ichigojam/IchigoTerm/>src on GitHub</a><br>
 
 <script type="module">
 import { IchigoConnect } from "./IchigoConnect.js";
+const receiveArea = document.getElementById("receive");
 
 for (let i = 1; i <= 7; i++) {
   const btn = document.createElement("button");
@@ -46,7 +87,12 @@ btn.onclick = async () => {
     for (const b of btns) {
       if (b == btn || b == btn_close) continue;
       b.disabled = false;
-      b.onclick = () => ic.write(b.textContent + "\n");
+      b.onclick = async () => {
+        const line = await ic.send(b.textContent + "\n");
+        if (line == null) return;
+        receiveArea.value += line + "\n";
+        receiveArea.scrollTop = receiveArea.scrollHeight;
+      };
     }
     btn.disabled = true;
     btn_close.disabled = false;
@@ -64,6 +110,29 @@ btn.onclick = async () => {
 body {
   font-family: sans-serif;
   padding: 1em;
+}
+#receive {
+  display: block;
+  width: 100%;
+  height: 8em;
+  margin-top: .5em;
+  box-sizing: border-box;
+}
+#usage {
+  max-width: 50em;
+  margin: 2em auto 0;
+}
+#usage pre {
+  padding: 1em;
+  overflow-x: auto;
+  background: #f5f5f5;
+}
+#usage dt {
+  margin-top: 1em;
+  font-weight: bold;
+}
+#usage dd {
+  margin: .25em 0 0 1em;
 }
 hr {
   margin-top: 2em;
