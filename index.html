@@ -18,7 +18,7 @@
 	  <input type=file id=fileinput accept=".txt,.bas,. bas,.ij">
 	  <span id=filename>（未選択）</span>
 	</div>
-	<textarea id=tapaste placeholder="ここに複数行テキストをペースト、またはファイルをドロップ"></textarea>
+	<textarea id=tapaste placeholder="ここにプログラムを書き一括送信します。ファイルをドロップしてもOK！"></textarea>
 	<div id=pastecontrols>
 	  <label>行間ディレイ: <input type=number id=pastedelay value=300 min=50 max=5000 step=50>ms</label>
 	  <button id=btnpaste>▶ 一括送信</button>
@@ -51,6 +51,11 @@ import { sleep } from "https://js.sabae.cc/sleep.js";
 import { IJScreen } from "https://ichigojam.github.io/ij-screen/ij-screen.js";
 const ijs = new IJScreen();
 divij.appendChild(ijs);
+document.addEventListener("click", (e) => {
+  if (e.target instanceof HTMLButtonElement) {
+    e.target.blur();
+  }
+});
 const ijScreenResizeObserver = new ResizeObserver(([entry]) => {
   const fontWidth = entry.contentRect.width / (32 * .8);
   const fontHeight = entry.contentRect.height / (24 * .8);
@@ -233,6 +238,10 @@ const main = async (port) => {
     writer.writeString(s);
     log(s);
   };
+  const sendEsc = () => {
+    //reader.pos = reader.len;
+    send("\x1b");
+  };
   form.onsubmit = (e) => {
     e.preventDefault();
     const s = inp.value + "\n";
@@ -273,16 +282,16 @@ const main = async (port) => {
     send("LED0\n");
   };
   btncls.onclick = () => {
-    send("CLS\n");
+    send("\x12\x0cCLS\n");
   };
   btnlist.onclick = () => {
-    send("LIST\n");
+    send("\x12\x0cLIST\n");
   };
   btnrun.onclick = () => {
-    send("RUN\n");
+    send("\x12\x0cRUN\n");
   };
   btnesc.onclick = () => {
-    send("\x1b");
+    sendEsc();
   };
   let flgright = false;
   let flgleft = false;
@@ -290,11 +299,11 @@ const main = async (port) => {
   let flgdown = false;
   let flgspace = false;
   document.body.onkeydown = (e) => {
-    if (e.target == inp) return;
-    if (e.ctrlKey && e.key.toLowerCase() == "c") {
+    if (e.target == inp || e.target == tapaste) return;
+    if (e.key.startsWith("Arrow")) {
       e.preventDefault();
-      send("\x1b");
-    } else if (e.key == "ArrowRight") {
+    }
+    if (e.key == "ArrowRight") {
       if (!flgright) {
         flgright = true;
         send("\x1d");
@@ -322,7 +331,7 @@ const main = async (port) => {
         send("\x20");
       }
     } else if (e.key == "Escape") {
-      send("\x1b");
+      sendEsc();
     } else if (e.key == "F1") {
       send("\x13\x0c");
     } else if (e.key == "F2") {
@@ -342,7 +351,7 @@ const main = async (port) => {
     }
   };
   document.body.onkeyup = (e) => {
-    if (e.target == inp) return;
+    if (e.target == inp || e.target == tapaste) return;
     if (e.key == "ArrowRight") {
       if (flgright) {
         flgright = false;
@@ -419,7 +428,6 @@ pastebar.addEventListener("drop", (e) => {
 });
 
 btnreq.onclick = async () => {
-  btnreq.blur();
   if (disconnect) {
     await disconnect();
     return;
