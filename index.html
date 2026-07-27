@@ -152,9 +152,13 @@ const upperXlower = (c) => {
 
 let state = 0;
 let cx = 0;
+const MAX_LOG_LENGTH = 10000;
 
 const log = (s) => {
-  talog.value += s;
+  const value = talog.value + s;
+  talog.value = value.length > MAX_LOG_LENGTH
+    ? value.slice(-MAX_LOG_LENGTH)
+    : value;
   scrollBottom(talog);
   // for ij-screen
   for (const c of s) {
