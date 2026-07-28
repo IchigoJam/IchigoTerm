@@ -98,3 +98,15 @@ export class IchigoConnect {
     this.readTask = null;
   }
 }
+
+let ic = null;
+const connect = async () => {
+  if (ic == null) ic = await IchigoConnect.create();
+  return ic;
+};
+export const send = async (s) => {
+  return (await connect()).send(s);
+};
+export const readLine = async (s) => {
+  return (await connect()).readLine();
+};
