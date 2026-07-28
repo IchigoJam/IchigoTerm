@@ -154,6 +154,19 @@ let state = 0;
 let cx = 0;
 const MAX_LOG_LENGTH = 10000;
 
+// 受信ログが際限なく伸びてメモリ・レイアウト計算コストが増え続けるのを防ぐ
+const MAX_LOG_LEN = 10000;
+// 1バイトごとの scrollBottom（強制reflow）を1フレーム1回に間引く
+let scrollScheduled = false;
+const scheduleScrollBottom = () => {
+  if (scrollScheduled) return;
+  scrollScheduled = true;
+  requestAnimationFrame(() => {
+    scrollScheduled = false;
+    scrollBottom(talog);
+  });
+};
+
 const log = (s) => {
   const value = talog.value + s;
   talog.value = value.length > MAX_LOG_LENGTH
